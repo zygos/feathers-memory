@@ -1,7 +1,49 @@
 import Proto from 'uberproto';
 import filter from 'feathers-query-filters';
 import errors from 'feathers-errors';
-import { sorter, matcher, select, _ } from 'feathers-commons';
+import { sorter, select, _ } from 'feathers-commons';
+
+const operators = {
+  $in: (key, ins) => current => ins.indexOf(current[key]) !== -1,
+  $nin: (key, nins) => current => nins.indexOf(current[key]) === -1,
+  $lt: (key, value) => current => current[key] < value,
+  $lte: (key, value) => current => current[key] <= value,
+  $gt: (key, value) => current => current[key] > value,
+  $gte: (key, value) => current => current[key] >= value,
+  $ne: (key, value) => current => current[key] !== value,
+  $contains: (key, value) => current => value.includes(key),
+  $like: (key, value) => current =>
+    current[key]
+      .toLowerCase()
+      .includes(trimPercent(value).toLowerCase())
+};
+
+const matcher = (originalQuery) => {
+  const query = _.omit(originalQuery, '$limit', '$skip', '$sort', '$select')
+
+  return function match(item) {
+    if (query.$or && _.some(query.$or, or => matcher(or)(item))) {
+      return true
+    }
+
+    return _.every(query, (value, key) => {
+      if (value !== null && typeof value === 'object') {
+        return _.every(value, (target, filterType) => {
+          if (operators[filterType]) {
+            const filterer = operators[filterType](key, target)
+            return filterer(item)
+          }
+
+          return false
+        })
+      } else if (typeof item[key] !== 'undefined') {
+        return item[key] === query[key]
+      }
+
+      return false
+    })
+  }
+};
 
 class Service {
   constructor (options = {}) {
