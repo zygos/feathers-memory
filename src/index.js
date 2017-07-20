@@ -4,18 +4,18 @@ import errors from 'feathers-errors';
 import { sorter, select, _ } from 'feathers-commons';
 
 const operators = {
-  $in: (key, ins) => current => ins.indexOf(current[key]) !== -1,
-  $nin: (key, nins) => current => nins.indexOf(current[key]) === -1,
+  $in: (key, ins) => current => ins.includes(current[key]),
+  $nin: (key, nins) => current => nins.includes(current[key]),
   $lt: (key, value) => current => current[key] < value,
   $lte: (key, value) => current => current[key] <= value,
   $gt: (key, value) => current => current[key] > value,
   $gte: (key, value) => current => current[key] >= value,
   $ne: (key, value) => current => current[key] !== value,
-  $contains: (key, value) => current => value.includes(key),
+  $contains: (key, value) => current => current[key].includes(value),
   $like: (key, value) => current =>
     current[key]
       .toLowerCase()
-      .includes(trimPercent(value).toLowerCase())
+      .includes(trimPercent(value).toLowerCase()),
 };
 
 const matcher = (originalQuery) => {
